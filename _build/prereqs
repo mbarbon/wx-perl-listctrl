@@ -1,9 +1,0 @@
-{
-          'build_requires' => {},
-          'conflicts' => {},
-          'requires' => {
-                          'Test::More' => '0.50',
-                          'Wx' => '0.20'
-                        },
-          'recommends' => {}
-        }
