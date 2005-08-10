@@ -1,0 +1,18 @@
+# Avoid version control files.
+\bRCS\b
+\bCVS\b
+\B\.svn\b
+
+# Avoid Module::Build generated and utility files.
+\bBuild$
+\b_build
+\bblib
+^MANIFEST\.SKIP$
+
+# Avoid temp and backup files.
+~$
+\.tmp$
+\.old$
+\.bak$
+\#$
+\b\.#
