@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 use strict;
-use Test::More tests => 73;
+use Test::More tests => 77;
 
 use lib 't';
 use Wx qw(:listctrl);
@@ -101,4 +101,18 @@ test {
 
     $lc->SetItemData( 0, undef );
     ok( !has 7 );
+
+    # fixes by Mark Dootson
+    init( $lc, 8, 2 );
+
+    $lc->SetItemData( 0, 'item 0' );
+    $lc->SetItemData( 2, 'item 2' );
+
+    is( $lc->GetItemData( 2 ), 'item 2' );
+    ok( !defined $lc->GetItemData( 1 ) );
+
+    my @item = $lc->GetItemData( 1 );
+
+    is( 1, scalar @item );
+    ok( !defined $item[0] );
 };

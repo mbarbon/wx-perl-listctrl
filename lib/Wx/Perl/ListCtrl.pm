@@ -13,7 +13,7 @@ Wx::Perl::ListCtrl - a sensible API for Wx::ListCtrl
     # add columns...
 
     # get/set item text easily
-    $lc->InsertItem( 0, 'dummy' );
+    $lc->InsertStringItem( 0, 'dummy' );
     $lc->SetItemText( 0, 0, 'row 0, col 0' );
     $lc->SetItemText( 0, 1, 'row 0, col 1' );
     $lc->GetItemText( 0, 1 ) # 'row 0, col 1'
@@ -42,12 +42,15 @@ and sometimes API-incompatible, implementations.
 
 use strict;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use Wx qw(:listctrl);
 use base 'Wx::ListView';
 
-sub carp { require Carp; goto &Carp::carp; }
+# assume a 4 byte long value giving a max of 2147483647 and set the
+# max index a little below.
+sub _max_itemdata_idx() { 2147483640 }
+sub _carp { require Carp; goto &Carp::carp; }
 
 =head1 METHODS
 
@@ -63,7 +66,7 @@ list control.
 sub GetSelection {
     my $self = shift;
 
-    carp( "GetSelection must be used on single selection Wx::Perl::ListCtrl" )
+    _carp( "GetSelection must be used on single selection Wx::Perl::ListCtrl" )
       unless $self->GetWindowStyleFlag & wxLC_SINGLE_SEL;
 
     return $self->GetFirstSelected;
@@ -81,7 +84,7 @@ list control.
 sub GetSelections {
     my $self = shift;
 
-    carp( "GetSelections must be used on multi selection Wx::Perl::ListCtrl" )
+    _carp( "GetSelections must be used on multi selection Wx::Perl::ListCtrl" )
       if $self->GetWindowStyleFlag & wxLC_SINGLE_SEL;
 
     my $selection = $self->GetFirstSelected;
@@ -133,15 +136,14 @@ given item.
 Sets the client data for the given row. Complex data structures are allowed.
 Setting the data to C<undef> deletes the data for the given row.
 
-B<WARNING> The current implementation is faulty: it will die() after
-about 2^31 calls in the same C<Wx::Perl::ListCtrl>.
-
 =cut
 
 sub SetItemData {
+    use integer;
+
     my( $self, $item, $data ) = @_;
     my $stash = $self->{_wx_data} ||= {};
-    my $idx = $self->SUPER::GetItemData( $item ) || 0;
+    my $idx = sprintf "%u", $self->SUPER::GetItemData( $item ) || 0;
 
     unless( defined $data ) {
         delete $stash->{$idx};
@@ -149,14 +151,41 @@ sub SetItemData {
     }
 
     unless( $idx ) {
-        my $count = $self->{_wx_count} || 0;
-        die "FIXME"
-          if $count >= ( $idx = ++$self->{_wx_count} ); # need to think
+        $idx = _get_new_idx( $self );
+        # reset where $stash points
+        $stash = $self->{_wx_data};
     }
 
     $stash->{$idx} = $data;
 
     $self->SUPER::SetItemData( $item, $idx );
+}
+
+sub _get_new_idx {
+    use integer;
+
+    my( $self ) = @_;
+    my $idx = sprintf "%u", ++$self->{_wx_count};
+
+    return $idx if $idx < _max_itemdata_idx();
+
+    # reset stash and item data
+    my $oldstash = $self->{_wx_data};
+    $self->{_wx_count} = 0;
+    my $newstash = {};
+    for( my $item = $self->SUPER::GetNextItem( -1 );
+         $item != -1;
+         $item = $self->SUPER::GetNextItem( $item ) ) {
+        my $oldindex = $self->SUPER::GetItemData( $item ) || 0;
+        if( $oldindex && exists $oldstash->{$oldindex} ) {
+            my $newindex = sprintf "%u", ++$self->{_wx_count};
+            $newstash->{$newindex} = $oldstash->{$oldindex};
+            $self->SUPER::SetItemData( $item, $newindex );
+        }
+    }
+    $self->{_wx_data} = $newstash;
+
+    return _get_new_idx( $self );
 }
 
 =head2 GetItemData
@@ -168,6 +197,8 @@ Retrieves the data set with C<$lc->SetItemData>.
 =cut
 
 sub GetItemData {
+    use integer;
+
     my( $self, $item ) = @_;
     my $stash = $self->{_wx_data};
     return unless $stash;
@@ -224,7 +255,7 @@ Mattia Barbon <mbarbon@cpan.org>
 
 =head1 LICENSE
 
-Copyright (c) 2005 Mattia Barbon <mbarbon@cpan.org>
+Copyright (c) 2005, 2007 Mattia Barbon <mbarbon@cpan.org>
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself
