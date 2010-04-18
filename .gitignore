@@ -1,0 +1,9 @@
+*~
+Build
+_build
+blib
+cover_db
+TAGS
+META.yml
+MYMETA.yml
+Makefile.PL
