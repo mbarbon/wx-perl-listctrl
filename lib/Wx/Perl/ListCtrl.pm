@@ -42,7 +42,7 @@ and sometimes API-incompatible, implementations.
 
 use strict;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use Wx qw(:listctrl);
 use base 'Wx::ListView';
