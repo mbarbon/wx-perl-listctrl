@@ -118,7 +118,7 @@ sub GetItemText {
     return $it ? $it->GetText : '';
 }
 
-=head2 SetItemtext
+=head2 SetItemText
 
     $lc->SetItemText( $row, $col, 'Text' );
 
